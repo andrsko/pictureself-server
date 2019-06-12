@@ -20,10 +20,10 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/2.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '*8v+z5tb)r$7^42(3atw7emwox!f8o1&ub3zdi9f1tlc9hvl-v'
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', '*8v+z5tb)r$7^42(3atw7emwox!f8o1&ub3zdi9f1tlc9hvl-v')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DJANGO_DEBUG', '') != 'False'
 
 ALLOWED_HOSTS = ['.herokuapp.com','127.0.0.1']
 
@@ -76,6 +76,7 @@ REST_FRAMEWORK = {
 
 CORS_ORIGIN_WHITELIST = (
     'localhost:3000',
+	'pictureself.co'
 )
 
 
