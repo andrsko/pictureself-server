@@ -107,7 +107,7 @@ def avatar_update(request):
     profile = user.profile
     profile.avatar = request.data['file']
     profile.save()
-    return Response({"avatar_url": request.scheme+"://"+request.get_host()+profile.avatar.url})
+    return Response({"avatar_url": profile.avatar.url})
 	
 	
 class UserLoginAPIView(views.APIView):
@@ -122,11 +122,14 @@ class UserLoginAPIView(views.APIView):
         if serializer.is_valid(raise_exception=True):
             user = serializer.validated_data['user']
             token, created = Token.objects.get_or_create(user=user)
+            avatar = ""
+            if user.profile.avatar is not None:
+                avatar = user.profile.avatar.url
             return Response({
                 'token': token.key,
                 'username': user.username,
                 'name': user.profile.name,
-				'avatar': request.scheme+"://"+request.get_host()+user.profile.avatar.url,
+				'avatar': user.profile.avatar.url,
             }, status=HTTP_200_OK)
 
         return Response(serializer.errors, status=HTTP_400_BAD_REQUEST)
