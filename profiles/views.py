@@ -123,7 +123,7 @@ class UserLoginAPIView(views.APIView):
             user = serializer.validated_data['user']
             token, created = Token.objects.get_or_create(user=user)
             avatar = ""
-            if user.profile.avatar is not None:
+            if user.profile.avatar and hasattr(user.profile.avatar, 'url'):
                 avatar = user.profile.avatar.url
             return Response({
                 'token': token.key,
