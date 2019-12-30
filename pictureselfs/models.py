@@ -241,7 +241,7 @@ class Pictureself(models.Model):
 			
 		images = []
 		for variant in variants:
-			images.append(Image.open(variant.image.name))
+			images.append(Image.open(variant.image))
 		if len(images) > 0:
 			mode = images[0].mode
 			
@@ -286,11 +286,11 @@ class Pictureself(models.Model):
 		
 		images = []
 		for variant in variants:
-			images.append(Image.open(variant.image.name))
+			images.append(Image.open(variant.image))
 			
 		i_images = []
 		for i_variant in i_variants:
-			i_images.append(Image.open(i_variant.image.name))
+			i_images.append(Image.open(i_variant.image))
 			
 		if len(images) > 0:
 			mode = images[0].mode
