@@ -38,9 +38,12 @@ def auto_delete_file_on_delete(sender, instance, **kwargs):
     when corresponding `Variant` object is deleted.
     """
     variants_with_the_file = Variant.objects.filter(image=instance.image)
-    if instance.image and variants_with_the_file.count() == 0:
-        if os.path.isfile(instance.image.path):
-            os.remove(instance.image.path)
+	#https://stackoverflow.com/questions/20516570/django-delete-file-from-amazon-s3
+    if variants_with_the_file.count() == 0:	
+        instance.img.delete(save=False)	
+#    if instance.image and variants_with_the_file.count() == 0:
+#        if os.path.isfile(instance.image.path):
+#            os.remove(instance.image.path)
 
 @receiver(models.signals.pre_save, sender=Variant)
 def auto_delete_file_on_change(sender, instance, **kwargs):
@@ -64,6 +67,8 @@ def auto_delete_file_on_change(sender, instance, **kwargs):
         for v in variants_with_the_file:
             logger.error("_______________---------->>>>>>"+str(v.original_name))
         if variants_with_the_file.count() == 1:
-            if os.path.isfile(old_file.path):
-                os.remove(old_file.path)
+			#https://stackoverflow.com/questions/20516570/django-delete-file-from-amazon-s3		
+            instance.img.delete(save=False)			
+#            if os.path.isfile(old_file.path):
+#                os.remove(old_file.path)
 
