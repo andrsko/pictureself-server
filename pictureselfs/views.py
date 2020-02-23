@@ -24,7 +24,6 @@ import logging	#logger = logging.getLogger(__name__) #logger.error(str(request.d
 import json
 from django.db.models import Q
 
-
 from .serializers import (
     PictureselfDetailSerializer,
     PictureselfDisplaySerializer,
@@ -63,21 +62,23 @@ def pictureself_create(request):
 	feature_order = json.loads(request.data['feature_order'])
 	variant_order = json.loads(request.data['variant_order'])
 	features = json.loads(request.data['features'])
+	created_variant_ids = json.loads(request.data['created_variant_ids'])
 	
 	new_pictureself = Pictureself(title=request.data['title'], user=request.user, description=request.data['description'])
 	new_pictureself.save()
 	
-	#add created variants
-	for variant_order_line in variant_order:
-		for variant_id in variant_order_line:
-			new_variant = Variant(channel=request.user, image=request.data[variant_id])
-			new_variant.save()
-			new_variant.pictureselfs.add(new_pictureself)
-			new_variant.save()
-			variant_order_line[variant_order_line.index(variant_id)] = new_variant.id
 	
-			
-	#add created and included features; import variants if included and []
+	# bind created variants to pictureself
+	for variant_id in created_variant_ids:
+		try:
+			variant = Variant.objects.get(id=variant_id)
+		except Variant.DoesNotExist:
+			return Response(status=status.HTTP_404_NOT_FOUND)
+		variant.pictureselfs.add(new_pictureself)
+		variant.save()
+		
+	# add created and included features
+	# if included and not overriden import variants  
 	for feature_id in feature_order:
 
 		# included; else - new
@@ -120,6 +121,7 @@ def pictureself_create(request):
 			variant = Variant.objects.get(id=variant_id)
 			variant.pictureselfs.add(new_pictureself)
 			variant.save()
+			
 	for feature_id in feature_order:
 		feature = Feature.objects.get(id = feature_id)
 		feature.pictureselfs.add(new_pictureself)
@@ -127,12 +129,59 @@ def pictureself_create(request):
 		
 	return Response({"new_pictureself_id": new_pictureself.id}, status=status.HTTP_201_CREATED)
 
+# to do: consider moving to variants.views as update_variants_chunk	
+# workaround for Heroku worker timeout error
+# updates chunk of variants with new file
+# if result is positive client removes ids from its edited_created_variant_ids list
+# and then updates next chunk till list is empty
+@api_view(['PUT'])
+@parser_classes([FormParser, MultiPartParser])
+@permission_classes([IsAuthenticated])
+def pictureself_edit_edit_variants_chunk(request, pk):
+	try:
+		pictureself = Pictureself.objects.get(pk=pk)
+	except Pictureself.DoesNotExist:
+		return Response(status=status.HTTP_404_NOT_FOUND)
+		
+	if pictureself.user != request.user:
+		return Response(status=status.HTTP_403_FORBIDDEN)
+	
+	for edited_variant_id, edited_variant_file in request.data:
+		try:
+			variant = Variant.objects.get(id=int(edited_variant_id))
+		except Variant.DoesNotExist:
+			return Response(status=status.HTTP_404_NOT_FOUND)
+		variant.image=edited_variant_file
+		variant.save()
+		
+	return Response(status=status.HTTP_202_ACCEPTED)
+
+# to do: consider moving to variants.views as edit_variants_chunk		
+# despite containing "pictureself_edit" it's used to create new pictureself as well
+@api_view(['PUT'])
+@parser_classes([FormParser, MultiPartParser])
+@permission_classes([IsAuthenticated])
+def pictureself_edit_create_variants_chunk(request):
+	legit_created_variant_ids = {}
+	for created_variant_id, created_variant_file in request.data:
+		new_variant = Variant(channel=request.user, image=created_variant_file)
+		new_variant.save()
+		legit_created_variant_ids[created_variant_id] = (new_variant.id)
+		
+	context = {
+		"legit_created_variant_ids": legit_created_variant_ids 
+	}
+	return Response(context)
+	
 @api_view(['PUT'])
 @parser_classes([FormParser, MultiPartParser])
 @permission_classes([IsAuthenticated])
 def pictureself_edit(request, pk):
-
-	pictureself = Pictureself.objects.get(id=pk)
+	try:
+		pictureself = Pictureself.objects.get(pk=pk)
+	except Pictureself.DoesNotExist:
+		return Response(status=status.HTTP_404_NOT_FOUND)
+		
 	if pictureself.user != request.user:
 		return Response(status=status.HTTP_403_FORBIDDEN)
 	
@@ -145,15 +194,18 @@ def pictureself_edit(request, pk):
 	new_feature_order = json.loads(request.data['feature_order'])
 	new_variant_order = json.loads(request.data['variant_order'])
 	features = json.loads(request.data['features'])
-	edited_created_variant_ids = json.loads(request.data['edited_created_variant_ids'])
+	
+	created_variant_ids = json.loads(request.data['created_variant_ids'])
+	
+	# bind newly created variants to pictureself
+	for variant_id in created_variant_ids:
+		try:
+			variant = Variant.objects.get(id=variant_id)
+		except Variant.DoesNotExist:
+			return Response(status=status.HTTP_404_NOT_FOUND)
+		variant.pictureselfs.add(pictureself)
+		variant.save()
 				
-	#update edited variants
-	for variant_id in edited_created_variant_ids:
-		if variant_id.isdigit():
-			edited_variant=Variant.objects.get(id=int(variant_id))
-			edited_variant.image=request.data[variant_id]
-			edited_variant.save()
-		
 	#delete removed variants
 	new_variant_order_items = []
 	for variant_order_line in new_variant_order:
@@ -167,20 +219,9 @@ def pictureself_edit(request, pk):
 					variant.delete()
 				else:
 					variant.pictureselfs.remove(pictureself)
+	
+	variant_order = new_variant_order
 
-	#add created variants
-	variant_order_items = []
-	for variant_order_line in variant_order:
-		for variant_id in variant_order_line:
-			variant_order_items.append(variant_id)				
-	for new_variant_order_line in new_variant_order:
-		for variant_id in new_variant_order_line:
-			if not variant_id.isdigit():
-				new_variant = Variant(channel=request.user, image=request.data[variant_id])
-				new_variant.save()
-				new_variant.pictureselfs.add(pictureself)
-				new_variant.save()
-				new_variant_order_line[new_variant_order_line.index(variant_id)] = new_variant.id
 	
 	#update features with changed title
 	for feature_id in feature_order:
@@ -246,6 +287,7 @@ def pictureself_edit(request, pk):
 	pictureself.save()
 	
 	return Response(status=status.HTTP_202_ACCEPTED)
+		
 
 @api_view(['DELETE'])
 @permission_classes([IsOwner])
@@ -301,22 +343,29 @@ def pictureself_features_to_include(request, pk):
 			features_to_include[str(feature.id)] = feature.title
 	
 	return Response(features_to_include)
-	
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def pictureself_options(request, pk, feature_id):
+def pictureself_options_info(request, pk, feature_id):
 
-	try:
-		pictureself = Pictureself.objects.get(pk=pk)
-	except Pictureself.DoesNotExist:
-		return Response(status=status.HTTP_404_NOT_FOUND)
+	# pk 0 refering to original
+	# original corresponding to feature
+	# as feature can be included to different pictureselfs
+	if pk == 0:
+		if feature.pictureselfs.all().count()==0:
+			return Response(status=status.HTTP_404_NOT_FOUND)
+		pictureself = feature.pictureselfs.all()[0]
+	else:
+		try:
+			pictureself = Pictureself.objects.get(pk=pk)
+		except Pictureself.DoesNotExist:
+			return Response(status=status.HTTP_404_NOT_FOUND)
 		
 	try:
 		feature = Feature.objects.get(id=feature_id)
 	except Feature.DoesNotExist:
 		return Response(status=status.HTTP_404_NOT_FOUND)
-	
+		
 	try:
 		customization = Customization.objects.get(user=request.user, channel_user=pictureself.user)
 	except Customization.DoesNotExist:
@@ -331,60 +380,52 @@ def pictureself_options(request, pk, feature_id):
 	
 	pictureself_feature_ids = pictureself.get_feature_ids()
 	i = pictureself_feature_ids.index(feature_id)
-	encodings, widths_heights = pictureself.get_encodings_widths_heights(request.user, i)
+	number_of_options = pictureself.get_feature_length(i)
+	
 	ext = pictureself.get_image_format()
-	alts = []
-	variants_i = pictureself.get_variants_i(i)
-	for variant_i in variants_i:
-		alts.append(variant_i.original_name)
+	
 	context = {
-		"encodings": encodings,
-		"widths_heights": widths_heights,
-		"active_option_index": active_option_index, 
-		"ext": ext, 
-		"alts":alts 
+		"active_option_index": active_option_index,
+		"number_of_options": number_of_options,
+		"ext": ext
 	}
 	return Response(context)
 	
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def original_pictureself_options(request, feature_id):
-
+def pictureself_options_chunk(request, pk, feature_id, start_position, number_of_options):
+	
+	# pk 0 refering to original
+	# original corresponding to feature
+	# as feature can be included to different pictureselfs
+	if pk == 0:
+		if feature.pictureselfs.all().count()==0:
+			return Response(status=status.HTTP_404_NOT_FOUND)
+		pictureself = feature.pictureselfs.all()[0]
+	else:
+		try:
+			pictureself = Pictureself.objects.get(pk=pk)
+		except Pictureself.DoesNotExist:
+			return Response(status=status.HTTP_404_NOT_FOUND)
+		
 	try:
 		feature = Feature.objects.get(id=feature_id)
 	except Feature.DoesNotExist:
 		return Response(status=status.HTTP_404_NOT_FOUND)
 	
-	if feature.pictureselfs.all().count()==0:
-		return Response(status=status.HTTP_404_NOT_FOUND)
-		
-	pictureself = feature.pictureselfs.all()[0]
-	
-	try:
-		customization = Customization.objects.get(user=request.user, channel_user=pictureself.user)
-	except Customization.DoesNotExist:
-		customization = Customization(user=request.user, channel_user=pictureself.user)
-		customization.save()
-		
-	customization_positions = customization.get_positions()
-	if str(feature_id) in customization_positions:
-		active_option_index = customization_positions[str(feature_id)]
-	else: 
-		active_option_index = -1
 	
 	pictureself_feature_ids = pictureself.get_feature_ids()
-	i = pictureself_feature_ids.index(feature_id)	
-	encodings, widths_heights = pictureself.get_encodings_widths_heights(request.user, i)
-	ext = pictureself.get_image_format()
+	i = pictureself_feature_ids.index(feature_id)
+	encodings, widths_heights = pictureself.get_encodings_widths_heights_chunk(request.user, i, start_position, number_of_options)
+
 	alts = []
 	variants_i = pictureself.get_variants_i(i)
 	for variant_i in variants_i:
 		alts.append(variant_i.original_name)
+		
 	context = {
 		"encodings": encodings,
 		"widths_heights": widths_heights,
-		"active_option_index": active_option_index, 
-		"ext": ext, 
 		"alts":alts 
 	}
 	return Response(context)

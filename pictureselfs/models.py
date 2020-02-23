@@ -315,13 +315,13 @@ class Pictureself(models.Model):
 				for image in images:
 					if images.index(image) == i:
 					
-						# ? workaround; see error comments above
+						# ? workaround; see error comments above in get_encoding
 						k_image_rgba = i_images[k].convert("RGBA")
 
 						result_images[k].paste(k_image_rgba, (0,0), k_image_rgba)			
 					else:
 					
-						# ? workaround; see error comments above
+						# ? workaround; see error comments above in get_encoding
 						image = image.convert("RGBA")
 						
 						result_images[k].paste(image, (0,0), image)
@@ -340,9 +340,74 @@ class Pictureself(models.Model):
 			results.append(base64.b64encode(result_io.getvalue()).decode('utf-8'))
 		
 		return [results, max_widths_heights]
+	
+	# ! refactor
+	def get_encodings_widths_heights_chunk(self, user, i, start_position, number_of_options):
+		variants = self.get_variants_customization(user)
+		i_variants = self.get_variants_i(i)
+		max_widths_heights = self.get_max_widths_heights(variants, i, i_variants)
+		
+		images = []
+		for variant in variants:
+			images.append(Image.open(variant.image))
+			
+		i_images = []
+		for i_variant in i_variants:
+			i_images.append(Image.open(i_variant.image))
+			
+		if len(images) > 0:
+			mode = images[0].mode
+			
+		result_images = []
+		
+		# to enable alpha-channel for transparency
+		if mode=='RGBA' or mode=="P" or mode=='1' or mode=='L':
+			for j in range(len(i_images)):
+				result_images.append(Image.new("RGBA", (max_widths_heights[j][0], max_widths_heights[j][1]), (0,0,0,0)))
+		elif mode=="RGB":
+			for j in range(len(i_images)):
+				result_images.append(Image.new(mode, (max_widths_heights[j][0], max_widths_heights[j][1]), "white"))
+		else:
+			for j in range(len(i_images)):
+				result_images.append(Image.new(mode, (max_widths_heights[j][0], max_widths_heights[j][1])))		
+		
+	
+		# third argument in paste is for mask
+		if mode=='1' or mode=='L' or mode=='RGBA' or mode=="P":
+			for k in range(len(i_images)):
+				for image in images:
+					if images.index(image) == i:
+					
+						# ? workaround; see error comments above in get_encoding
+						k_image_rgba = i_images[k].convert("RGBA")
+
+						result_images[k].paste(k_image_rgba, (0,0), k_image_rgba)			
+					else:
+					
+						# ? workaround; see error comments above in get_encoding
+						image = image.convert("RGBA")
+						
+						result_images[k].paste(image, (0,0), image)
+		else:
+			for k in range(len(i_images)):
+				for image in images:
+					if images.index(image) == i:
+						result_images[k].paste(i_images[k], (0,0))			
+					else:
+						result_images[k].paste(image, (0,0))
+						
+		results = []
+		for result_image in result_images:
+			result_io = BytesIO()
+			result_image.save(result_io, format=self.get_image_format(), quality=95)
+			results.append(base64.b64encode(result_io.getvalue()).decode('utf-8'))
+		
+		return [results[start_position:number_of_options], max_widths_heights[start_position:number_of_options]]
 
 	# ??? in development
-	# multiply included feature
+	# to enable multiply included in the same pictureself feature
+	# example: blue circle background in avataaars: it consists of two parts: white arc and blue circle
+	# that locate on different layers
 	# -> ??? different row lengths
 	#def get_encodings_widths_heights_feature_id(self, user, feature_id):
 		#variants = self.get_variants_customization(user)
