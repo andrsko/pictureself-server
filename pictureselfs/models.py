@@ -278,6 +278,56 @@ class Pictureself(models.Model):
 		self.view_count = self.view_count + 1
 		
 		return result
+
+	def get_data_specific_variant(self, user, feature_id, variant_index):
+		variants = self.get_variants_customization(user)
+		variant_ids = self.get_variant_ids()
+		feature_ids = self.get_feature_ids()
+		feature_indices = [i for i, x in enumerate(feature_ids) if x == feature_id]
+		for feature_index in feature_indices:
+			variants[feature_index] = Variant.objects.get(id=variant_ids[feature_index][variant_index])
+		max_width, max_height = self.get_max_width_height(variants)
+		
+		images = []
+		for variant in variants:
+			images.append(Image.open(variant.image))
+		if len(images) > 0:
+			mode = images[0].mode
+			
+		# to enable alpha-channel for transparency
+		# ? process all formats properly: 
+		# ? https://pillow.readthedocs.io/en/5.1.x/reference/Image.html#examples 
+		# ? https://pillow.readthedocs.io/en/5.1.x/handbook/image-file-formats.html#png
+		# ? "Image.new(mode, (max_width, max_height), (0,0,0,0))" replaced by "Image.new("RGBA", (max_width, max_height), (0,0,0,0))" as
+		# ? "result_image = Image.new(mode, (max_width, max_height), (0,0,0,0))" when "P" mode is not working:
+		# ? error: "function takes exactly 1 argument (4 given)"
+		if mode=='1' or mode=='L' or mode=='RGBA' or mode=="P":
+			result_image = Image.new("RGBA", (max_width, max_height), (0,0,0,0))
+		elif mode=="RGB":
+			result_image = Image.new(mode, (max_width, max_height), "white")
+		else:
+			result_image = Image.new(mode, (max_width, max_height))
+			
+		# third argument in paste is for mask
+		if mode=='1' or mode=='L' or mode=='RGBA' or mode=="P":
+			for image in images:
+				
+				# ? workaround; see error comments above
+				image = image.convert("RGBA")
+				
+				result_image.paste(image, (0,0), image)
+		else:
+			for image in images:
+				result_image.paste(image, (0,0))
+				
+		result_io = BytesIO()
+		result_image.save(result_io, format=self.get_image_format(), quality=95)
+		result = base64.b64encode(result_io.getvalue()).decode('utf-8')
+		
+		self.view_count = self.view_count + 1
+		
+		alt = Variant.objects.get(id=variant_ids[feature_indices[0]][variant_index]).original_name	
+		return [result, [max_width, max_height], alt]
 		
 	def get_encodings_widths_heights(self, user, i):
 		variants = self.get_variants_customization(user)
@@ -402,7 +452,7 @@ class Pictureself(models.Model):
 			result_image.save(result_io, format=self.get_image_format(), quality=95)
 			results.append(base64.b64encode(result_io.getvalue()).decode('utf-8'))
 		
-		return [results[start_position:number_of_options], max_widths_heights[start_position:number_of_options]]
+		return [results[start_position:start_position+number_of_options], max_widths_heights[start_position:start_position+number_of_options]]
 
 	# ??? in development
 	# to enable multiply included in the same pictureself feature

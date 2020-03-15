@@ -27,6 +27,7 @@ urlpatterns = [
 	path('api/', include('rest_framework.urls')),
     path('api/user/', include('profiles.urls')),
 	path('api/features/', include('features.urls')),
+	path('api/variants/', include('variants.urls')),
 	path('api/p/', include('pictureselfs.urls')),
 	path('api/customizations/', include('customizations.urls')),
 

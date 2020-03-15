@@ -108,6 +108,10 @@ def pictureself_create(request):
 	
 	int_ids_feature_order = [int(x) for x in feature_order]
 	int_ids_variant_order = []
+	
+	logger = logging.getLogger(__name__)
+	logger.error("<><><><><><><><><><"+str(variant_order))
+
 	for variant_order_line in variant_order:
 		int_ids_variant_order.append([int(x) for x in variant_order_line])
 		
@@ -155,6 +159,7 @@ def pictureself_edit_edit_variants_chunk(request, pk):
 		variant.save()
 		
 	return Response(status=status.HTTP_202_ACCEPTED)
+	
 
 # to do: consider moving to variants.views as edit_variants_chunk		
 # despite containing "pictureself_edit" it's used to create new pictureself as well
@@ -393,6 +398,37 @@ def pictureself_options_info(request, pk, feature_id):
 	
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
+def pictureself_option(request, pk, feature_id, variant_index):
+	
+	# pk 0 refering to original
+	# original corresponding to feature
+	# as feature can be included to different pictureselfs
+	if pk == 0:
+		if feature.pictureselfs.all().count()==0:
+			return Response(status=status.HTTP_404_NOT_FOUND)
+		pictureself = feature.pictureselfs.all()[0]
+	else:
+		try:
+			pictureself = Pictureself.objects.get(pk=pk)
+		except Pictureself.DoesNotExist:
+			return Response(status=status.HTTP_404_NOT_FOUND)
+		
+	try:
+		feature = Feature.objects.get(id=feature_id)
+	except Feature.DoesNotExist:
+		return Response(status=status.HTTP_404_NOT_FOUND)
+	
+	encoding, width_height, alt = pictureself.get_data_specific_variant(request.user, feature_id, variant_index)
+		
+	context = {
+		"encoding": encoding,
+		"width_height": width_height,
+		"alt":alt
+	}
+	return Response(context)
+	
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def pictureself_options_chunk(request, pk, feature_id, start_position, number_of_options):
 	
 	# pk 0 refering to original
@@ -419,14 +455,14 @@ def pictureself_options_chunk(request, pk, feature_id, start_position, number_of
 	encodings, widths_heights = pictureself.get_encodings_widths_heights_chunk(request.user, i, start_position, number_of_options)
 
 	alts = []
-	variants_i = pictureself.get_variants_i(i)
+	variants_i = pictureself.get_variants_i(i)[start_position:start_position+number_of_options] 
 	for variant_i in variants_i:
 		alts.append(variant_i.original_name)
 		
 	context = {
 		"encodings": encodings,
 		"widths_heights": widths_heights,
-		"alts":alts 
+		"alts":alts
 	}
 	return Response(context)
 	

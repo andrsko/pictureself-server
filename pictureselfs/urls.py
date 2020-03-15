@@ -13,6 +13,7 @@ from .views import (
     pictureself_features_to_include,
 	pictureself_options_info,	
 	pictureself_options_chunk,
+	pictureself_option,	
 	PictureselfSearchListAPIView,	
 	toggle_like
 )
@@ -22,6 +23,7 @@ urlpatterns = [
     path('search/<str:q>/', PictureselfSearchListAPIView.as_view(), name='pictureselfs-search'), 		
     path('<int:pk>/options-info/<int:feature_id>/', pictureself_options_info, name='pictureself-options-info'),
     path('<int:pk>/options-chunk/<int:feature_id>/<int:start_position>/<int:number_of_options>/', pictureself_options_chunk, name='pictureself-options-chunk'),
+    path('<int:pk>/option/<int:feature_id>/<int:variant_index>/', pictureself_option, name='pictureself-option'),
     path('<int:pk>/', PictureselfDisplayAPIView.as_view(), name='pictureself-display'),
     path('<int:pk>/data/', PictureselfDetailAPIView.as_view(), name='pictureself-data'),
     path('<int:pk>/toggle-like/', toggle_like, name='pictureself-toggle-like'),
