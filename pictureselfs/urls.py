@@ -10,20 +10,16 @@ from .views import (
     pictureself_edit,
     pictureself_create,
     pictureself_delete,
-    pictureself_features_to_include,
-	pictureself_options_info,	
-	pictureself_options_chunk,
-	pictureself_option,	
+    pictureself_features_to_include,	
 	PictureselfSearchListAPIView,	
-	toggle_like
+	toggle_like,
+	pictureself_customization_variants,
+	pictureself_feature_variants
 )
 
 urlpatterns = [
     path('index/', PictureselfsIndexListAPIView.as_view(), name='pictureselfs-index'),
     path('search/<str:q>/', PictureselfSearchListAPIView.as_view(), name='pictureselfs-search'), 		
-    path('<int:pk>/options-info/<int:feature_id>/', pictureself_options_info, name='pictureself-options-info'),
-    path('<int:pk>/options-chunk/<int:feature_id>/<int:start_position>/<int:number_of_options>/', pictureself_options_chunk, name='pictureself-options-chunk'),
-    path('<int:pk>/option/<int:feature_id>/<int:variant_index>/', pictureself_option, name='pictureself-option'),
     path('<int:pk>/', PictureselfDisplayAPIView.as_view(), name='pictureself-display'),
     path('<int:pk>/data/', PictureselfDetailAPIView.as_view(), name='pictureself-data'),
     path('<int:pk>/toggle-like/', toggle_like, name='pictureself-toggle-like'),
@@ -33,5 +29,7 @@ urlpatterns = [
     path('0/edit/', pictureself_create, name='pictureself-create'),
     path('<int:pk>/edit/', pictureself_edit, name='pictureself-edit'),
     path('<int:pk>/delete/', pictureself_delete, name='pictureself-delete'),
+    path('<int:pk>/customization-variants/', pictureself_customization_variants, name='pictureself-customization-variants'),
+    path('<int:pk>/feature-variants/<int:feature_id>/', pictureself_feature_variants, name='pictureself-feature-variants'),
 	
 ]

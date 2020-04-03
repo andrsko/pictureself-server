@@ -2,10 +2,12 @@ from django.conf.urls import url
 from django.urls import include, path
 
 from .views import (
-    edit_customization
+    customization_edit,
+    customization_position	
 )
 
 urlpatterns = [	
-    path('<int:feature_id>/edit/', edit_customization, name='edit-customization'),	
+    path('<int:feature_id>/edit/', customization_edit, name='customization-edit'),	
+    path('<int:feature_id>/', customization_position, name='customization-position'),
 	
 ]

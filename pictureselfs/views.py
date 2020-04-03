@@ -35,7 +35,6 @@ class PictureselfDetailAPIView(generics.RetrieveAPIView):
     serializer_class = PictureselfDetailSerializer
     permission_classes = [IsOwner]
 	
-# in gallery	
 class PictureselfDisplayAPIView(generics.RetrieveAPIView):
     queryset = Pictureself.objects.all()
     serializer_class = PictureselfDisplaySerializer
@@ -48,7 +47,7 @@ class PictureselfSearchListAPIView(generics.ListAPIView):
         query=self.kwargs['q']	
         queryset = Pictureself.objects.filter(Q(title__icontains=query) | Q(description__icontains=query))
         return queryset
-	
+
 class PictureselfsIndexListAPIView(generics.ListAPIView):
     queryset = Pictureself.objects.order_by('-timestamp')[:55]
     serializer_class = PictureselfListSerializer
@@ -108,9 +107,6 @@ def pictureself_create(request):
 	
 	int_ids_feature_order = [int(x) for x in feature_order]
 	int_ids_variant_order = []
-	
-	logger = logging.getLogger(__name__)
-	logger.error("<><><><><><><><><><"+str(variant_order))
 
 	for variant_order_line in variant_order:
 		int_ids_variant_order.append([int(x) for x in variant_order_line])
@@ -348,123 +344,6 @@ def pictureself_features_to_include(request, pk):
 			features_to_include[str(feature.id)] = feature.title
 	
 	return Response(features_to_include)
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def pictureself_options_info(request, pk, feature_id):
-
-	# pk 0 refering to original
-	# original corresponding to feature
-	# as feature can be included to different pictureselfs
-	if pk == 0:
-		if feature.pictureselfs.all().count()==0:
-			return Response(status=status.HTTP_404_NOT_FOUND)
-		pictureself = feature.pictureselfs.all()[0]
-	else:
-		try:
-			pictureself = Pictureself.objects.get(pk=pk)
-		except Pictureself.DoesNotExist:
-			return Response(status=status.HTTP_404_NOT_FOUND)
-		
-	try:
-		feature = Feature.objects.get(id=feature_id)
-	except Feature.DoesNotExist:
-		return Response(status=status.HTTP_404_NOT_FOUND)
-		
-	try:
-		customization = Customization.objects.get(user=request.user, channel_user=pictureself.user)
-	except Customization.DoesNotExist:
-		customization = Customization(user=request.user, channel_user=pictureself.user)
-		customization.save()
-		
-	customization_positions = customization.get_positions()
-	if str(feature_id) in customization_positions:
-		active_option_index = customization_positions[str(feature_id)]
-	else: 
-		active_option_index = -1
-	
-	pictureself_feature_ids = pictureself.get_feature_ids()
-	i = pictureself_feature_ids.index(feature_id)
-	number_of_options = pictureself.get_feature_length(i)
-	
-	ext = pictureself.get_image_format()
-	
-	context = {
-		"active_option_index": active_option_index,
-		"number_of_options": number_of_options,
-		"ext": ext
-	}
-	return Response(context)
-	
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def pictureself_option(request, pk, feature_id, variant_index):
-	
-	# pk 0 refering to original
-	# original corresponding to feature
-	# as feature can be included to different pictureselfs
-	if pk == 0:
-		if feature.pictureselfs.all().count()==0:
-			return Response(status=status.HTTP_404_NOT_FOUND)
-		pictureself = feature.pictureselfs.all()[0]
-	else:
-		try:
-			pictureself = Pictureself.objects.get(pk=pk)
-		except Pictureself.DoesNotExist:
-			return Response(status=status.HTTP_404_NOT_FOUND)
-		
-	try:
-		feature = Feature.objects.get(id=feature_id)
-	except Feature.DoesNotExist:
-		return Response(status=status.HTTP_404_NOT_FOUND)
-	
-	encoding, width_height, alt = pictureself.get_data_specific_variant(request.user, feature_id, variant_index)
-		
-	context = {
-		"encoding": encoding,
-		"width_height": width_height,
-		"alt":alt
-	}
-	return Response(context)
-	
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def pictureself_options_chunk(request, pk, feature_id, start_position, number_of_options):
-	
-	# pk 0 refering to original
-	# original corresponding to feature
-	# as feature can be included to different pictureselfs
-	if pk == 0:
-		if feature.pictureselfs.all().count()==0:
-			return Response(status=status.HTTP_404_NOT_FOUND)
-		pictureself = feature.pictureselfs.all()[0]
-	else:
-		try:
-			pictureself = Pictureself.objects.get(pk=pk)
-		except Pictureself.DoesNotExist:
-			return Response(status=status.HTTP_404_NOT_FOUND)
-		
-	try:
-		feature = Feature.objects.get(id=feature_id)
-	except Feature.DoesNotExist:
-		return Response(status=status.HTTP_404_NOT_FOUND)
-	
-	
-	pictureself_feature_ids = pictureself.get_feature_ids()
-	i = pictureself_feature_ids.index(feature_id)
-	encodings, widths_heights = pictureself.get_encodings_widths_heights_chunk(request.user, i, start_position, number_of_options)
-
-	alts = []
-	variants_i = pictureself.get_variants_i(i)[start_position:start_position+number_of_options] 
-	for variant_i in variants_i:
-		alts.append(variant_i.original_name)
-		
-	context = {
-		"encodings": encodings,
-		"widths_heights": widths_heights,
-		"alts":alts
-	}
-	return Response(context)
 	
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -483,3 +362,44 @@ def toggle_like(request, pk):
 		like.save()
 
 	return Response(status=status.HTTP_200_OK)
+	
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def pictureself_customization_variants(request, pk):
+	try:
+		pictureself = Pictureself.objects.get(pk=pk)
+	except Pictureself.DoesNotExist:
+		return Response(status=status.HTTP_404_NOT_FOUND)
+	variants = pictureself.get_variants_customization(request.user)
+	variant_image_urls = []
+	variant_original_names = []
+	for variant in variants:
+		variant_image_urls.append(variant.image.url)
+		variant_original_names.append(variant.original_name)	
+	context = {
+		"variant_image_urls": variant_image_urls,
+		"variant_original_names": variant_original_names
+	}
+	return Response(context)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def pictureself_feature_variants(request, pk, feature_id):
+	try:
+		pictureself = Pictureself.objects.get(pk=pk)
+	except Pictureself.DoesNotExist:
+		return Response(status=status.HTTP_404_NOT_FOUND)
+	
+	pictureself_feature_ids = pictureself.get_feature_ids()	
+	feature_index = pictureself_feature_ids.index(feature_id)
+	variants = pictureself.get_variants_i(feature_index)
+	variant_image_urls = []
+	variant_original_names = []
+	for variant in variants:
+		variant_image_urls.append(variant.image.url)
+		variant_original_names.append(variant.original_name)	
+	context = {
+		"variant_image_urls": variant_image_urls,
+		"variant_original_names": variant_original_names
+	}
+	return Response(context)

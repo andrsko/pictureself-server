@@ -57,9 +57,7 @@ class PictureselfDetailSerializer(serializers.ModelSerializer):
         return pictureself.user.username
 		
 class PictureselfDisplaySerializer(serializers.ModelSerializer):
-    encoding = serializers.SerializerMethodField()
-    ext = serializers.SerializerMethodField()
-    width_height = serializers.SerializerMethodField()
+    image_urls = serializers.SerializerMethodField()
     username = serializers.SerializerMethodField()
     name = serializers.SerializerMethodField()	
     avatar = serializers.ImageField(source='user.profile.avatar')
@@ -78,27 +76,20 @@ class PictureselfDisplaySerializer(serializers.ModelSerializer):
             'username',
             'name',			
 			'avatar',	
-            'encoding',
-            'ext',
-            'width_height',
+            'image_urls',
 			'is_customizable',
 			'is_liked',
 			'number_of_likes'
         ]
-		
-    def get_ext(self, obj):
-        ext = obj.get_image_format().lower()
-        return ext
 
-    def get_encoding(self, obj):
+    def get_image_urls(self, obj):
         user = self.context.get('request').user
         pictureself = obj
-        return pictureself.get_encoding(user)
-		
-    def get_width_height(self, obj):
-        variants = obj.get_variants_customization(self.context.get('request').user)
-        width_height = obj.get_max_width_height(variants)
-        return width_height
+        variants = pictureself.get_variants_customization(user)
+        image_urls = []
+        for variant in variants:
+            image_urls.append(variant.image.url)			
+        return image_urls
 		
     def get_username(self, obj):
         pictureself = obj
@@ -126,13 +117,11 @@ class PictureselfDisplaySerializer(serializers.ModelSerializer):
     def get_number_of_likes(self, obj):
         pictureself = obj
         return Like.objects.filter(pictureself=pictureself).count()
-		
+	
 class PictureselfListSerializer(serializers.ModelSerializer):
-    encoding = serializers.SerializerMethodField()
-    ext = serializers.SerializerMethodField()
-    width_height = serializers.SerializerMethodField()
     username = serializers.SerializerMethodField()	
     name = serializers.SerializerMethodField()		
+    image_urls = serializers.SerializerMethodField()
     class Meta:
         model = Pictureself
         fields = [
@@ -140,26 +129,18 @@ class PictureselfListSerializer(serializers.ModelSerializer):
             'title',
             'username',
             'name',
-            'encoding',
-			'width_height',
-			'ext'
+            'image_urls',			
         ]
 		
-	
-    def get_ext(self, obj):
-        ext = obj.get_image_format().lower()
-        return ext
-
-    def get_width_height(self, obj):
-        variants = obj.get_variants_customization(self.context.get('request').user)
-        width_height = obj.get_max_width_height(variants)
-        return width_height
-
-    def get_encoding(self, obj):
+    def get_image_urls(self, obj):
         user = self.context.get('request').user
         pictureself = obj
-        return pictureself.get_encoding(user)
-		
+        variants = pictureself.get_variants_customization(user)
+        image_urls = []
+        for variant in variants:
+            image_urls.append(variant.image.url)			
+        return image_urls
+				
     def get_username(self, obj):
         pictureself = obj
         return pictureself.user.username

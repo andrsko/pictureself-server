@@ -16,7 +16,7 @@ from rest_framework.response import Response
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-def edit_customization(request, feature_id):
+def customization_edit(request, feature_id):
 	new_position = request.data['position']
 	try:
 		feature = Feature.objects.get(id=feature_id)
@@ -32,3 +32,33 @@ def edit_customization(request, feature_id):
 	customization.save()
 	
 	return Response(status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def customization_position(request,  feature_id):
+	
+	try:
+		feature = Feature.objects.get(id=feature_id)
+	except Feature.DoesNotExist:
+		return Response(status=status.HTTP_404_NOT_FOUND)
+		
+	if feature.pictureselfs.all().count()==0:
+		return Response(status=status.HTTP_404_NOT_FOUND)
+	pictureself = feature.pictureselfs.all()[0]
+		
+	try:
+		customization = Customization.objects.get(user=request.user, channel_user=pictureself.user)
+	except Customization.DoesNotExist:
+		customization = Customization(user=request.user, channel_user=pictureself.user)
+		customization.save()
+		
+	customization_positions = customization.get_positions()
+	if str(feature_id) in customization_positions:
+		customization_position = customization_positions[str(feature_id)]
+	else: 
+		customization_position = -1
+	
+	context = {
+		"customization_position": customization_position,
+	}
+	return Response(context)
