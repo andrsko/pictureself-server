@@ -26,7 +26,9 @@ def channel_features(request, username):
 	features = Feature.objects.filter(pictureselfs__in=channel.pictureselfs.all()).distinct()
 	feature_ids = []
 	feature_titles = []
+	all_feature_ids = []	
 	for feature in features:
+		all_feature_ids.append(feature.id)
 		pictureself = feature.pictureselfs.all()[0]
 		pictureself_feature_ids = pictureself.get_feature_ids()
 		pictureself_variant_ids = pictureself.get_variant_ids()
@@ -37,6 +39,7 @@ def channel_features(request, username):
 	context = {
 		"feature_ids": feature_ids,
 		"feature_titles": feature_titles,
+		'all_feature_ids': pictureself_feature_ids		
 	}
 	return Response(context)
 	
@@ -61,6 +64,7 @@ def pictureself_features(request, pictureself_id):
 
 	context = {
 		'feature_ids': feature_ids, 
-		'feature_titles': feature_titles
+		'feature_titles': feature_titles,
+		'all_feature_ids': pictureself_feature_ids
 	}
 	return Response(context)
