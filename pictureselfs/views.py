@@ -86,16 +86,12 @@ def pictureself_create(request):
 			# check if variants are imported
 			if variant_order[feature_order.index(feature_id)] == []:
 				original_pictureself = included_feature.pictureselfs.last()
-				variants_to_import_data_from = original_pictureself.get_variant_ids()[original_pictureself.get_feature_ids().index(int(feature_id))]
-				variants_with_imported_data = []
-				for variant_id in variants_to_import_data_from:
+				variants_to_import = original_pictureself.get_variant_ids()[original_pictureself.get_feature_ids().index(int(feature_id))]
+				for variant_id in variants_to_import:
 					variant = Variant.objects.get(id=variant_id)
-					new_variant = Variant(image=variant.image, original_name=variant.original_name, channel=request.user)
-					new_variant.save()
-					new_variant.pictureselfs.add(new_pictureself)
-					new_variant.save()
-					variants_with_imported_data.append(new_variant.id)	
-				variant_order[feature_order.index(feature_id)] = variants_with_imported_data
+					variant.pictureselfs.add(new_pictureself)
+					variant.save()
+				variant_order[feature_order.index(feature_id)] = variants_to_import
 
 		# create new and update id in new_feature_order			
 		else:
@@ -257,16 +253,12 @@ def pictureself_edit(request, pk):
 				# check if variants are imported
 				if new_variant_order[new_feature_order.index(feature_id)] == []:
 					original_pictureself = included_feature.pictureselfs.last()
-					variants_to_import_data_from = original_pictureself.get_variant_ids()[original_pictureself.get_feature_ids().index(int(feature_id))]
-					variants_with_imported_data = []
-					for variant_id in variants_to_import_data_from:
+					variants_to_import = original_pictureself.get_variant_ids()[original_pictureself.get_feature_ids().index(int(feature_id))]
+					for variant_id in variants_to_import:
 						variant = Variant.objects.get(id=variant_id)
-						new_variant = Variant(image=variant.image, original_name=variant.original_name, channel=request.user)
-						new_variant.save()
-						new_variant.pictureselfs.add(pictureself)
-						new_variant.save()
-						variants_with_imported_data.append(new_variant.id)	
-					new_variant_order[new_feature_order.index(feature_id)] = variants_with_imported_data
+						variant.pictureselfs.add(pictureself)
+						variant.save()
+					new_variant_order[new_feature_order.index(feature_id)] = variants_to_import
 				#after importing variants to avoid collision with feature.pictureselfs.first()
 				included_feature.pictureselfs.add(pictureself)	
 				included_feature.save()
