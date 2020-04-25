@@ -65,16 +65,6 @@ def pictureself_create(request):
 	
 	new_pictureself = Pictureself(title=request.data['title'], user=request.user, description=request.data['description'])
 	new_pictureself.save()
-	
-	
-	# bind created variants to pictureself
-	for variant_id in created_variant_ids:
-		try:
-			variant = Variant.objects.get(id=variant_id)
-		except Variant.DoesNotExist:
-			return Response(status=status.HTTP_404_NOT_FOUND)
-		variant.pictureselfs.add(new_pictureself)
-		variant.save()
 		
 	# add created and included features
 	# if included and not overriden import variants  
@@ -87,10 +77,6 @@ def pictureself_create(request):
 			if variant_order[feature_order.index(feature_id)] == []:
 				original_pictureself = included_feature.pictureselfs.last()
 				variants_to_import = original_pictureself.get_variant_ids()[original_pictureself.get_feature_ids().index(int(feature_id))]
-				for variant_id in variants_to_import:
-					variant = Variant.objects.get(id=variant_id)
-					variant.pictureselfs.add(new_pictureself)
-					variant.save()
 				variant_order[feature_order.index(feature_id)] = variants_to_import
 
 		# create new and update id in new_feature_order			
@@ -107,16 +93,10 @@ def pictureself_create(request):
 	for variant_order_line in variant_order:
 		int_ids_variant_order.append([int(x) for x in variant_order_line])
 		
-
 	new_pictureself.set_feature_ids_json(int_ids_feature_order)
 	new_pictureself.set_variant_ids_json(int_ids_variant_order)
 	new_pictureself.save()
 	
-	for variant_order_line in variant_order:
-		for variant_id in variant_order_line:
-			variant = Variant.objects.get(id=variant_id)
-			variant.pictureselfs.add(new_pictureself)
-			variant.save()
 			
 	for feature_id in feature_order:
 		feature = Feature.objects.get(id = feature_id)
@@ -194,15 +174,6 @@ def pictureself_edit(request, pk):
 	
 	created_variant_ids = json.loads(request.data['created_variant_ids'])
 	
-	# bind newly created variants to pictureself
-	for variant_id in created_variant_ids:
-		try:
-			variant = Variant.objects.get(id=variant_id)
-		except Variant.DoesNotExist:
-			return Response(status=status.HTTP_404_NOT_FOUND)
-		variant.pictureselfs.add(pictureself)
-		variant.save()
-				
 	#delete removed variants
 	new_variant_order_items = []
 	for variant_order_line in new_variant_order:
@@ -211,11 +182,17 @@ def pictureself_edit(request, pk):
 	for variant_order_line in variant_order:
 		for variant_id in variant_order_line:
 			if not str(variant_id) in new_variant_order_items:
-				variant = Variant.objects.get(id=variant_id)
-				if variant.pictureselfs.count()==1:
-					variant.delete()
-				else:
-					variant.pictureselfs.remove(pictureself)
+				used = False
+				channel_pictureselfs = pictureself.user.pictureselfs
+				channel_pictureselfs_len = len(channel_pictureselfs)
+				i = 0
+				while i < channel_pictureselfs_len and not used:
+					str_repr = " "+str(variant_id)+","
+					if str_repr in channel_pictureselfs[i].variant_ids_json:
+						used = True
+					i += 1
+				if not used:
+					Variant.objects.get(id=variant_id).delete()
 	
 	variant_order = new_variant_order
 
@@ -254,10 +231,6 @@ def pictureself_edit(request, pk):
 				if new_variant_order[new_feature_order.index(feature_id)] == []:
 					original_pictureself = included_feature.pictureselfs.last()
 					variants_to_import = original_pictureself.get_variant_ids()[original_pictureself.get_feature_ids().index(int(feature_id))]
-					for variant_id in variants_to_import:
-						variant = Variant.objects.get(id=variant_id)
-						variant.pictureselfs.add(pictureself)
-						variant.save()
 					new_variant_order[new_feature_order.index(feature_id)] = variants_to_import
 				#after importing variants to avoid collision with feature.pictureselfs.first()
 				included_feature.pictureselfs.add(pictureself)	
@@ -297,14 +270,19 @@ def pictureself_delete(request, pk):
 		feature = Feature.objects.get(id=feature_id)
 		# check if variants are imported - else delete
 		if feature.pictureselfs.count() > 1:
-			variants_are_imported = False
-			for feature_pictureself in feature.pictureselfs.all():
-				feature_index = feature_pictureself.get_feature_ids().index(feature_id)
-				if feature_pictureself.get_variant_ids()[feature_index] == variant_line:
-					variants_are_imported = True			
-			if not variants_are_imported:
-				for variant_id in variant_line:
+			for variant_id in variant_line:
+				used = False
+				channel_pictureselfs = pictureself.user.pictureselfs
+				channel_pictureselfs_len = len(channel_pictureselfs)
+				i = 0
+				while i < channel_pictureselfs_len and not used:
+					str_repr = " "+str(variant_id)+","
+					if str_repr in channel_pictureselfs[i].variant_ids_json:
+						used = True
+					i += 1
+				if not used:
 					Variant.objects.get(id=variant_id).delete()
+					
 		# delete feature that's only used in p being deleted	
 		# delete records from customizations
 		else:

@@ -22,9 +22,6 @@ class Variant(models.Model):
 	original_name = models.CharField(max_length=200, null="True", blank="True")
 	timestamp = models.DateTimeField(auto_now_add = True, auto_now = False)
 	
-	# for future implementation (included feature variants synchronization)
-	pictureselfs = models.ManyToManyField('pictureselfs.Pictureself', related_name='variants')
-	
 	# to name/detect folder file is going to
 	channel = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name='variants')
 

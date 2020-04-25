@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
 from rest_framework.validators import UniqueValidator
+from rest_framework.renderers import JSONRenderer
 from django.contrib.humanize.templatetags.humanize import naturaltime
 from .models import Pictureself
 from .models import Like
@@ -34,7 +35,7 @@ class VariantDetailSerializer(serializers.ModelSerializer):
 
 class PictureselfDetailSerializer(serializers.ModelSerializer):
     features = FeatureDetailSerializer(many=True)
-    variants = VariantDetailSerializer(many=True)
+    variants = serializers.SerializerMethodField()
     username = serializers.SerializerMethodField()
 	
     class Meta:
@@ -55,6 +56,14 @@ class PictureselfDetailSerializer(serializers.ModelSerializer):
     def get_username(self, obj):
         pictureself = obj
         return pictureself.user.username
+		
+    def get_variants(self, obj):
+        pictureself = obj
+        variants = pictureself.get_variants()
+        serialized_variants = []
+        for variant in variants:
+            serialized_variants.append(VariantDetailSerializer(variant).data)
+        return serialized_variants
 		
 class PictureselfDisplaySerializer(serializers.ModelSerializer):
     image_urls = serializers.SerializerMethodField()
