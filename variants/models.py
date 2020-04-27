@@ -25,22 +25,14 @@ class Variant(models.Model):
 	# to name/detect folder file is going to
 	channel = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name='variants')
 
-	
-# These two auto-delete files from filesystem when they are unneeded:
-
+#https://stackoverflow.com/questions/20516570/django-delete-file-from-amazon-s3
 @receiver(models.signals.post_delete, sender=Variant)
 def auto_delete_file_on_delete(sender, instance, **kwargs):
     """
     Deletes file from filesystem
     when corresponding `Variant` object is deleted.
     """
-    variants_with_the_file = Variant.objects.filter(image=instance.image)
-	#https://stackoverflow.com/questions/20516570/django-delete-file-from-amazon-s3
-    if variants_with_the_file.count() == 0:	
-        instance.image.delete(save=False)	
-#    if instance.image and variants_with_the_file.count() == 0:
-#        if os.path.isfile(instance.image.path):
-#            os.remove(instance.image.path)
+    instance.image.delete(save=False)	
 
 @receiver(models.signals.pre_save, sender=Variant)
 def auto_delete_file_on_change(sender, instance, **kwargs):
@@ -56,16 +48,8 @@ def auto_delete_file_on_change(sender, instance, **kwargs):
         old_file = Variant.objects.get(pk=instance.pk).image
     except Variant.DoesNotExist:
         return False
-    logger = logging.getLogger(__name__)
 
     new_file = instance.image
     if old_file != new_file:	
-        variants_with_the_file = Variant.objects.filter(image=old_file)
-        for v in variants_with_the_file:
-            logger.error("_______________---------->>>>>>"+str(v.original_name))
-        if variants_with_the_file.count() == 1:
-			#https://stackoverflow.com/questions/20516570/django-delete-file-from-amazon-s3		
-            Variant.objects.get(pk=instance.pk).image.delete(save=False)			
-#            if os.path.isfile(old_file.path):
-#                os.remove(old_file.path)
+        Variant.objects.get(pk=instance.pk).image.delete(save=False)			
 

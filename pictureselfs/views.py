@@ -58,12 +58,19 @@ class PictureselfsIndexListAPIView(generics.ListAPIView):
 @parser_classes((MultiPartParser, FormParser,))
 @permission_classes([IsAuthenticated])
 def pictureself_create(request):
+	if "image" in request.data:
+		new_pictureself = Pictureself(title=request.data['title'], user=request.user,
+			description=request.data['description'], image=request.data['image'])
+		new_pictureself.save()
+		return Response({"new_pictureself_id": new_pictureself.id}, status=status.HTTP_201_CREATED)
+		
 	feature_order = json.loads(request.data['feature_order'])
 	variant_order = json.loads(request.data['variant_order'])
 	features = json.loads(request.data['features'])
 	created_variant_ids = json.loads(request.data['created_variant_ids'])
 	
-	new_pictureself = Pictureself(title=request.data['title'], user=request.user, description=request.data['description'])
+	new_pictureself = Pictureself(title=request.data['title'],
+		user=request.user, description=request.data['description'])
 	new_pictureself.save()
 		
 	# add created and included features
@@ -162,12 +169,34 @@ def pictureself_edit(request, pk):
 	if pictureself.user != request.user:
 		return Response(status=status.HTTP_403_FORBIDDEN)
 	
-	feature_order = pictureself.get_feature_ids()
-	variant_order = pictureself.get_variant_ids()
-	
 	pictureself.title = request.data['title']
 	pictureself.description = request.data['description']
-
+	
+	#non customizable
+	if "image" in request.data:
+		#was customizable
+		if not pictureself.image:
+			delete_related_data(pictureself)
+			pictureself.feature_ids_json = None
+			pictureself.variant_ids_json = None
+			pictureself.save()
+			
+		pictureself.image=request.data['image']
+		pictureself.save()
+		return Response(status=status.HTTP_202_ACCEPTED)
+	
+	#customizable
+	
+	#was non customizable
+	if pictureself.image:
+		pictureself.image.delete()
+		pictureself.image_original_name = None
+		feature_order = []
+		variant_order = []
+	else:
+		feature_order = pictureself.get_feature_ids()
+		variant_order = pictureself.get_variant_ids()
+	
 	new_feature_order = json.loads(request.data['feature_order'])
 	new_variant_order = json.loads(request.data['variant_order'])
 	features = json.loads(request.data['features'])
@@ -183,8 +212,8 @@ def pictureself_edit(request, pk):
 		for variant_id in variant_order_line:
 			if not str(variant_id) in new_variant_order_items:
 				used = False
-				channel_pictureselfs = pictureself.user.pictureselfs
-				channel_pictureselfs_len = len(channel_pictureselfs)
+				channel_pictureselfs = pictureself.user.pictureselfs.all()
+				channel_pictureselfs_len = channel_pictureselfs.count()
 				i = 0
 				while i < channel_pictureselfs_len and not used:
 					str_repr = " "+str(variant_id)+","
@@ -262,18 +291,31 @@ def pictureself_delete(request, pk):
 	
 	if pictureself.user != request.user:
 		return Response(status=status.HTTP_403_FORBIDDEN)
-		
+	
+	#non customizable
+	if pictureself.image:
+		pictureself.image.delete()
+		pictureself.delete()
+		return Response(status=status.HTTP_200_OK)
+	
+	#customizable
+	delete_related_data(pictureself)
+	pictureself.delete()
+	return Response(status=status.HTTP_200_OK)
+
+def delete_related_data(pictureself):
 	feature_order = pictureself.get_feature_ids()
 	variant_order = pictureself.get_variant_ids()
 	
 	for feature_id, variant_line in zip(feature_order, variant_order):
 		feature = Feature.objects.get(id=feature_id)
+		feature.pictureselfs.remove(pictureself)
 		# check if variants are imported - else delete
 		if feature.pictureselfs.count() > 1:
 			for variant_id in variant_line:
 				used = False
-				channel_pictureselfs = pictureself.user.pictureselfs
-				channel_pictureselfs_len = len(channel_pictureselfs)
+				channel_pictureselfs = pictureself.user.pictureselfs.all()
+				channel_pictureselfs_len = channel_pictureselfs.count()
 				i = 0
 				while i < channel_pictureselfs_len and not used:
 					str_repr = " "+str(variant_id)+","
@@ -286,15 +328,12 @@ def pictureself_delete(request, pk):
 		# delete feature that's only used in p being deleted	
 		# delete records from customizations
 		else:
-			customizations = Customization.objects.filter(channel_user=request.user)
+			customizations = Customization.objects.filter(channel_user=pictureself.user)
 			for customization in customizations:
 				customization.delete_position(feature)
 			feature.delete()
 			for variant_id in variant_line:
 				Variant.objects.get(id=variant_id).delete()
-
-	pictureself.delete()
-	return Response(status=status.HTTP_200_OK)
 	
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

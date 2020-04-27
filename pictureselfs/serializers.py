@@ -10,6 +10,7 @@ from features.models import Feature
 from variants.models import Variant
 from customizations.models import Customization
 from profiles.models import Profile
+import logging	#logger = logging.getLogger(__name__) #logger.error(str(request.data))
 
 # ? create separate PictureselfListSerializer
 
@@ -45,6 +46,8 @@ class PictureselfDetailSerializer(serializers.ModelSerializer):
             'title',
             'description',
             'view_count',
+            'image',
+            'image_original_name',			
             'feature_ids_json',
             'variant_ids_json',
             'timestamp',
@@ -58,7 +61,11 @@ class PictureselfDetailSerializer(serializers.ModelSerializer):
         return pictureself.user.username
 		
     def get_variants(self, obj):
+        logger = logging.getLogger(__name__)
         pictureself = obj
+        logger.error("--------||||||||||\\\\\\--------------------------------|||||"+str(pictureself.is_customizable()))		
+        if not pictureself.is_customizable():
+            return []
         variants = pictureself.get_variants()
         serialized_variants = []
         for variant in variants:
@@ -94,10 +101,13 @@ class PictureselfDisplaySerializer(serializers.ModelSerializer):
     def get_image_urls(self, obj):
         user = self.context.get('request').user
         pictureself = obj
-        variants = pictureself.get_variants_customization(user)
         image_urls = []
-        for variant in variants:
-            image_urls.append(variant.image.url)			
+        if pictureself.image:
+            image_urls.append(pictureself.image.url)
+        else:
+            variants = pictureself.get_variants_customization(user)
+            for variant in variants:
+                image_urls.append(variant.image.url)			
         return image_urls
 		
     def get_username(self, obj):
@@ -144,10 +154,13 @@ class PictureselfListSerializer(serializers.ModelSerializer):
     def get_image_urls(self, obj):
         user = self.context.get('request').user
         pictureself = obj
-        variants = pictureself.get_variants_customization(user)
         image_urls = []
-        for variant in variants:
-            image_urls.append(variant.image.url)			
+        if pictureself.image:
+            image_urls.append(pictureself.image.url)
+        else:
+            variants = pictureself.get_variants_customization(user)
+            for variant in variants:
+                image_urls.append(variant.image.url)			
         return image_urls
 				
     def get_username(self, obj):

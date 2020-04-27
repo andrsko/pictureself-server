@@ -6,6 +6,7 @@ from customizations.models import Customization
 from django.db.models import Case, When
 from PIL import Image
 import base64
+import uuid
 from io import BytesIO
 from django.conf import settings
 from django.core.files.base import ContentFile
@@ -13,11 +14,23 @@ import json
 import logging
 import os
 
+def get_file_path(instance, filename):
+	instance.image_original_name = filename
+	file_name, file_ext = os.path.splitext(filename)
+	# new filename format: "test_4274B9D4-9084-441C-9617-EAD03CC9F47F.jpg"
+	filename = "{0}_{1}{2}".format(file_name, uuid.uuid4(), file_ext)
+	# file will be uploaded to MEDIA_ROOT/user_<id>/<filename>
+	user_id = instance.user.id
+	return os.path.join('user_{0}'.format(user_id), filename)
+	
 class Pictureself(models.Model):
 	user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name='pictureselfs')
 	title = models.CharField(max_length=200)
 	description = models.TextField(max_length=1000, null=True, blank=True)
 	view_count = models.IntegerField(default=0)
+	
+	image = models.ImageField(upload_to=get_file_path, null=True)
+	image_original_name = models.CharField(max_length=200, null=True)
 	
 	# JSON-serialized (text) versions of arrays
 	# 	variants(ragged array) implemented as list of lists
@@ -50,6 +63,8 @@ class Pictureself(models.Model):
 		return ext
 		
 	def is_customizable(self):
+		if self.image:
+			return False
 		variant_ids = self.get_variant_ids()
 		is_customizable = False
 		i = 0
