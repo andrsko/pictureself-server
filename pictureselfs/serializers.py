@@ -72,7 +72,8 @@ class PictureselfDetailSerializer(serializers.ModelSerializer):
         for variant in variants:
             serialized_variants.append(VariantDetailSerializer(variant).data)
         return serialized_variants
-		
+
+#to do: create base serializer for PictureselfListSerializer and PictureselfDisplaySerializer
 class PictureselfDisplaySerializer(serializers.ModelSerializer):
     image_urls = serializers.SerializerMethodField()
     username = serializers.SerializerMethodField()
@@ -148,6 +149,7 @@ class PictureselfListSerializer(serializers.ModelSerializer):
     username = serializers.SerializerMethodField()	
     name = serializers.SerializerMethodField()		
     image_urls = serializers.SerializerMethodField()
+    is_customizable = serializers.SerializerMethodField()	
     class Meta:
         model = Pictureself
         fields = [
@@ -155,7 +157,8 @@ class PictureselfListSerializer(serializers.ModelSerializer):
             'title',
             'username',
             'name',
-            'image_urls',			
+            'image_urls',
+			'is_customizable',			
         ]
 		
     def get_image_urls(self, obj):
@@ -182,3 +185,7 @@ class PictureselfListSerializer(serializers.ModelSerializer):
         pictureself = obj
         profile = Profile.objects.get(user=pictureself.user)
         return profile.name
+				
+    def get_is_customizable(self, obj):
+        pictureself = obj
+        return pictureself.is_customizable()
