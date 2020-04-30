@@ -23,6 +23,7 @@ from customizations.models import Customization
 import logging	#logger = logging.getLogger(__name__) #logger.error(str(request.data))
 import json
 from django.db.models import Q
+from django.db.models import Count
 
 from .serializers import (
     PictureselfDetailSerializer,
@@ -49,9 +50,11 @@ class PictureselfSearchListAPIView(generics.ListAPIView):
         return queryset
 
 class PictureselfsIndexListAPIView(generics.ListAPIView):
-    queryset = Pictureself.objects.order_by('-timestamp')[:55]
     serializer_class = PictureselfListSerializer
     permission_classes = [AllowAny]
+    def get_queryset(self):
+        queryset = Pictureself.objects.all().annotate(like_count=Count('likes')).order_by('like_count').reverse()[:55]
+        return queryset	
 	
 
 @api_view(['POST'])
