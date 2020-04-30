@@ -7,7 +7,6 @@ from .views import (
     UserLoginAPIView,
     UserLogoutAPIView,
     UserDetailAPIView,
-    UserListAPIView,
     ChannelListAPIView,
     UserDeleteAPIView,
     UserUpdateAPIView,
@@ -19,7 +18,6 @@ from .views import (
 )
 
 urlpatterns = [
-    path('', UserListAPIView.as_view(), name='user-list'),
     path('channels/', ChannelListAPIView.as_view(), name='channel-list'),
     path('register/', UserCreateAPIView.as_view(), name='user-register'),
     path('login/', UserLoginAPIView.as_view(), name='user-login'),

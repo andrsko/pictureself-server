@@ -60,11 +60,6 @@ class UserUpdateAPIView(generics.UpdateAPIView):
     lookup_field = 'username'
     permission_classes = [IsOwnerOrReadOnly]
 
-class UserListAPIView(generics.ListAPIView):
-    queryset = User.objects.all()
-    serializer_class = UserListSerializer
-    permission_classes = [AllowAny]
-	
 class ChannelListAPIView(generics.ListAPIView):
     serializer_class =  UserListSerializer
     permission_classes = [AllowAny]
