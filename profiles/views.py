@@ -21,6 +21,7 @@ from pictureselfs.models import Pictureself
 from pictureselfs.models import Like
 from profiles.models import Subscription
 from django.db.models import Case, When
+from django.db.models import Count
 
 User = get_user_model()
 
@@ -69,7 +70,9 @@ class ChannelListAPIView(generics.ListAPIView):
     permission_classes = [AllowAny]
 
     def get_queryset(self):
-        return User.objects.annotate(pictureselfs_count=Count('pictureselfs')).filter(pictureselfs_count__gte=1)
+        channels = User.objects.annotate(pictureself_count=Count('pictureselfs', distinct=True)).filter(pictureself_count__gte=1)
+        queryset = channels.annotate(subscriber_count=Count('channels', distinct=True)).order_by('subscriber_count').reverse()[:55]				
+        return queryset
 
 class UserChannelSubscribedToListAPIView(generics.ListAPIView):
     serializer_class =  UserListSerializer
