@@ -25,10 +25,10 @@ def create_superuser_profile(sender, instance, created, **kwargs):
 def create_auth_token(sender, instance=None, created=False, **kwargs):
     if created:
         Token.objects.create(user=instance)
-		
+
 class Subscription(models.Model):
-	user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name='subscribers')
-	channel = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name='channels')
+	user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name='user_subscriptions')
+	channel = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name='channel_subscribtions')
 	timestamp = models.DateTimeField(auto_now_add = True, auto_now = False)
 	
 	class Meta:

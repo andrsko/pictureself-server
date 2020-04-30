@@ -71,7 +71,8 @@ class ChannelListAPIView(generics.ListAPIView):
 
     def get_queryset(self):
         channels = User.objects.annotate(pictureself_count=Count('pictureselfs', distinct=True)).filter(pictureself_count__gte=1)
-        queryset = channels.annotate(subscriber_count=Count('channels', distinct=True)).order_by('subscriber_count').reverse()[:55]				
+        channels_annotated = channels.annotate(channel_subscribtion_count=Count('channel_subscribtions', distinct=True))
+        queryset = channels_annotated.order_by('-channel_subscribtion_count')[:55]		
         return queryset
 
 class UserChannelSubscribedToListAPIView(generics.ListAPIView):
