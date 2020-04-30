@@ -15,7 +15,7 @@ from pictureselfs.models import Pictureself
 from .models import Feature
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def channel_features(request, username):
 
 	try:
@@ -44,7 +44,7 @@ def channel_features(request, username):
 	return Response(context)
 	
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def pictureself_features(request, pictureself_id):
 
 	try:

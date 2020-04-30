@@ -167,6 +167,30 @@ class Pictureself(models.Model):
 		for variant_id in customization_variant_ids:
 			variants.append(Variant.objects.get(pk=variant_id))
 		return variants
+
+	def get_variants_external_customization(self, customization_positions):
+		variant_ids = self.get_variant_ids()
+		feature_ids = self.get_feature_ids()
+		customization_variant_ids = []
+		
+		for i_variant_ids, feature_id in zip(variant_ids, feature_ids):
+			if len(i_variant_ids) >= 1:
+				if str(feature_id) in customization_positions:
+					if int(customization_positions[str(feature_id)]) < len(i_variant_ids):
+						customization_variant_ids.append(i_variant_ids[int(customization_positions[str(feature_id)])])
+							
+					# customized variant has been deleted	
+					else:
+						customization_variant_ids.append(i_variant_ids[0])
+							
+				# feature isn't customized yet
+				else:
+					customization_variant_ids.append(i_variant_ids[0])
+		
+		variants = []
+		for variant_id in customization_variant_ids:
+			variants.append(Variant.objects.get(pk=variant_id))
+		return variants
 		
 	def add_feature(self, feature):
 		feature_ids = self.get_feature_ids()

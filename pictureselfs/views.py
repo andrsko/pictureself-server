@@ -373,7 +373,7 @@ def toggle_like(request, pk):
 	return Response(status=status.HTTP_200_OK)
 	
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def pictureself_customization_variants(request, pk):
 	try:
 		pictureself = Pictureself.objects.get(pk=pk)
@@ -392,7 +392,7 @@ def pictureself_customization_variants(request, pk):
 	return Response(context)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def pictureself_feature_variants(request, pk, feature_id):
 	try:
 		pictureself = Pictureself.objects.get(pk=pk)

@@ -10,6 +10,7 @@ from features.models import Feature
 from variants.models import Variant
 from customizations.models import Customization
 from profiles.models import Profile
+from urllib import parse
 import logging	#logger = logging.getLogger(__name__) #logger.error(str(request.data))
 
 # ? create separate PictureselfListSerializer
@@ -99,13 +100,19 @@ class PictureselfDisplaySerializer(serializers.ModelSerializer):
         ]
 
     def get_image_urls(self, obj):
-        user = self.context.get('request').user
+        request = self.context.get('request')	
+        user = request.user
         pictureself = obj
         image_urls = []
         if pictureself.image:
             image_urls.append(pictureself.image.url)
         else:
-            variants = pictureself.get_variants_customization(user)
+            if request.query_params:
+                logger = logging.getLogger(__name__)
+                logger.error(str(request.query_params))			
+                variants = 	pictureself.get_variants_external_customization(request.query_params.dict())		
+            else:
+                variants = pictureself.get_variants_customization(user)
             for variant in variants:
                 image_urls.append(variant.image.url)			
         return image_urls
@@ -152,13 +159,17 @@ class PictureselfListSerializer(serializers.ModelSerializer):
         ]
 		
     def get_image_urls(self, obj):
-        user = self.context.get('request').user
+        request = self.context.get('request')	
+        user = request.user
         pictureself = obj
         image_urls = []
         if pictureself.image:
             image_urls.append(pictureself.image.url)
         else:
-            variants = pictureself.get_variants_customization(user)
+            if request.query_params:
+                variants = 	pictureself.get_variants_external_customization(request.query_params.dict())		
+            else:
+                variants = pictureself.get_variants_customization(user)
             for variant in variants:
                 image_urls.append(variant.image.url)			
         return image_urls
