@@ -83,6 +83,7 @@ class PictureselfDisplaySerializer(serializers.ModelSerializer):
     is_customizable = serializers.SerializerMethodField()
     is_liked = serializers.SerializerMethodField()
     number_of_likes = serializers.SerializerMethodField()
+    view_count = serializers.SerializerMethodField()
 	
     class Meta:
         model = Pictureself
@@ -146,12 +147,20 @@ class PictureselfDisplaySerializer(serializers.ModelSerializer):
     def get_number_of_likes(self, obj):
         pictureself = obj
         return Like.objects.filter(pictureself=pictureself).count()
+		
+    def get_view_count(self, obj):
+        pictureself = obj
+        pictureself.view_count = pictureself.view_count + 1
+        pictureself.save()
+        return pictureself.view_count			
 	
 class PictureselfListSerializer(serializers.ModelSerializer):
     username = serializers.SerializerMethodField()	
     name = serializers.SerializerMethodField()		
     image_urls = serializers.SerializerMethodField()
-    is_customizable = serializers.SerializerMethodField()	
+    is_customizable = serializers.SerializerMethodField()
+    view_count = serializers.SerializerMethodField()
+	
     class Meta:
         model = Pictureself
         fields = [
@@ -160,7 +169,8 @@ class PictureselfListSerializer(serializers.ModelSerializer):
             'username',
             'name',
             'image_urls',
-			'is_customizable',			
+			'is_customizable',
+            'view_count',			
         ]
 		
     def get_image_urls(self, obj):
@@ -191,3 +201,9 @@ class PictureselfListSerializer(serializers.ModelSerializer):
     def get_is_customizable(self, obj):
         pictureself = obj
         return pictureself.is_customizable()
+		
+    def get_view_count(self, obj):
+        pictureself = obj
+        pictureself.view_count = pictureself.view_count + 1
+        pictureself.save()
+        return pictureself.view_count		
