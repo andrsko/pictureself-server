@@ -27,6 +27,7 @@ class Pictureself(models.Model):
 	user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name='pictureselfs')
 	title = models.CharField(max_length=200)
 	description = models.TextField(max_length=1000, null=True, blank=True)
+	tags = models.TextField(max_length=500, null=True, blank=True)	
 	view_count = models.IntegerField(default=0)
 	
 	image = models.ImageField(upload_to=get_file_path, null=True)

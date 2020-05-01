@@ -46,7 +46,8 @@ class PictureselfSearchListAPIView(generics.ListAPIView):
     permission_classes = [AllowAny]	
     def get_queryset(self):
         query=self.kwargs['q']	
-        queryset = Pictureself.objects.filter(Q(title__icontains=query) | Q(description__icontains=query))
+        queryset = Pictureself.objects.filter(Q(title__icontains=query) | 
+            Q(description__icontains=query) | Q(tags__icontains=query))
         return queryset
 
 class PictureselfsIndexListAPIView(generics.ListAPIView):
@@ -63,7 +64,7 @@ class PictureselfsIndexListAPIView(generics.ListAPIView):
 def pictureself_create(request):
 	if "image" in request.data:
 		new_pictureself = Pictureself(title=request.data['title'], user=request.user,
-			description=request.data['description'], image=request.data['image'])
+			description=request.data['description'], tags=request.data['tags'], image=request.data['image'])
 		new_pictureself.save()
 		return Response({"new_pictureself_id": new_pictureself.id}, status=status.HTTP_201_CREATED)
 		
@@ -72,8 +73,8 @@ def pictureself_create(request):
 	features = json.loads(request.data['features'])
 	created_variant_ids = json.loads(request.data['created_variant_ids'])
 	
-	new_pictureself = Pictureself(title=request.data['title'],
-		user=request.user, description=request.data['description'])
+	new_pictureself = Pictureself(title=request.data['title'], user=request.user,
+		description=request.data['description'], tags=request.data['tags'])
 	new_pictureself.save()
 		
 	# add created and included features
@@ -174,6 +175,7 @@ def pictureself_edit(request, pk):
 	
 	pictureself.title = request.data['title']
 	pictureself.description = request.data['description']
+	pictureself.tags = request.data['tags']	
 	
 	#non customizable
 	if "image" in request.data:
