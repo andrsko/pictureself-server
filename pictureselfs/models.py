@@ -30,8 +30,8 @@ class Pictureself(models.Model):
 	tags = models.TextField(max_length=500, null=True, blank=True)	
 	view_count = models.IntegerField(default=0)
 	
-	image = models.ImageField(upload_to=get_file_path, null=True)
-	image_original_name = models.CharField(max_length=200, null=True)
+	image = models.ImageField(upload_to=get_file_path, null=True, blank=True)
+	image_original_name = models.CharField(max_length=200, null=True, blank=True)
 	
 	# JSON-serialized (text) versions of arrays
 	# 	variants(ragged array) implemented as list of lists
