@@ -128,11 +128,15 @@ class Pictureself(models.Model):
 		return variants
 	
 	def get_variants(self):
+		logger = logging.getLogger(__name__)
 		variant_ids = self.get_variant_ids()
 		variants = []
 		for i_variant_ids in variant_ids:
 			for variant_id in i_variant_ids:
-				variants.append(Variant.objects.get(pk=variant_id))
+				try:
+					variants.append(Variant.objects.get(pk=variant_id))
+				except Variant.DoesNotExist:
+					logger.error("Query: variant.id="+str(variant_id))
 		return variants	
 		
 	def get_variants_customization(self, user):
