@@ -388,7 +388,10 @@ def pictureself_customization_variants(request, pk):
 		pictureself = Pictureself.objects.get(pk=pk)
 	except Pictureself.DoesNotExist:
 		return Response(status=status.HTTP_404_NOT_FOUND)
-	variants = pictureself.get_variants_customization(request.user)
+	if request.query_params:
+		variants = 	pictureself.get_variants_external_customization(request.query_params.dict())
+	else:
+		variants = pictureself.get_variants_customization(request.user)
 	variant_image_urls = []
 	variant_original_names = []
 	for variant in variants:
