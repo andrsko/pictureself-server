@@ -220,9 +220,13 @@ def pictureself_edit(request, pk):
 				channel_pictureselfs = pictureself.user.pictureselfs.all()
 				channel_pictureselfs_len = channel_pictureselfs.count()
 				i = 0
+				str_repr = []
+				str_repr.append("["+str(variant_id)+",")
+				str_repr.append(", "+str(variant_id)+",")
+				str_repr.append(", "+str(variant_id)+"]")
+				str_repr.append("["+str(variant_id)+"]")
 				while i < channel_pictureselfs_len and not used:
-					str_repr = " "+str(variant_id)+","
-					if str_repr in channel_pictureselfs[i].variant_ids_json:
+					if any(substring in channel_pictureselfs[i].variant_ids_json for substring in str_repr):
 						used = True
 					i += 1
 				if not used:
