@@ -185,7 +185,7 @@ def pictureself_edit(request, pk):
 			pictureself.feature_ids_json = None
 			pictureself.variant_ids_json = None
 			pictureself.save()
-		if 	request.data['image']:
+		if 	request.data['image'] not null:
 			print(">>>>>>Req data image: "+request.data['image'])
 			pictureself.image=request.data['image']
 		pictureself.save()
