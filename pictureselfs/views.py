@@ -185,8 +185,8 @@ def pictureself_edit(request, pk):
 			pictureself.feature_ids_json = None
 			pictureself.variant_ids_json = None
 			pictureself.save()
-			
-		pictureself.image=request.data['image']
+		if 	request.data['image']:
+			pictureself.image=request.data['image']
 		pictureself.save()
 		return Response(status=status.HTTP_202_ACCEPTED)
 	
