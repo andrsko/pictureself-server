@@ -48,8 +48,12 @@ class PictureselfSearchListAPIView(generics.ListAPIView):
     permission_classes = [AllowAny]	
     def get_queryset(self):
         query=self.kwargs['q']	
-        queryset = Pictureself.objects.filter(Q(title__icontains=query) | 
-            Q(description__icontains=query) | Q(tags__icontains=query))
+        queryset = Pictureself.objects.filter(
+            Q(title__icontains=query) | 
+            Q(description__icontains=query) | 
+            Q(tags__icontains=query) |
+            Q(user__username__icontains=query) | 
+            Q(user__profile__name__icontains=query))			
         return queryset
 
 class PictureselfsIndexListAPIView(generics.ListAPIView):
