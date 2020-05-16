@@ -24,6 +24,8 @@ import logging	#logger = logging.getLogger(__name__) #logger.error(str(request.d
 import json
 from django.db.models import Q
 from django.db.models import Count
+from datetime import date, timedelta
+from collections import Counter
 
 from .serializers import (
     PictureselfDetailSerializer,
@@ -54,8 +56,15 @@ class PictureselfsIndexListAPIView(generics.ListAPIView):
     serializer_class = PictureselfListSerializer
     permission_classes = [AllowAny]
     def get_queryset(self):
-        queryset = Pictureself.objects.all().annotate(like_count=Count('likes')).order_by('like_count').reverse()[:55]
-        return queryset	
+        QUERYSET_LENGTH = 55
+        TIME_INTERVAL_DAYS = 10		
+        end_date = date.today()	
+        start_date = end_date - timedelta(days=TIME_INTERVAL_DAYS)
+        end_date = end_date + timedelta(days=1)		
+        queryset = (Pictureself.objects
+            .annotate(like_count=Count('likes', filter=Q(likes__timestamp__range=[start_date,end_date])))
+            .order_by('like_count').reverse()[:QUERYSET_LENGTH])
+        return queryset
 	
 
 @api_view(['POST'])
