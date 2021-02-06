@@ -386,7 +386,7 @@ def toggle_like(request, pk):
 		return Response(status=status.HTTP_404_NOT_FOUND)
 		
 	try:
-		like = Like.objects.get(pictureself=pictureself)
+		like = Like.objects.get(user=request.user, pictureself=pictureself)
 		like.delete()
 	except Like.DoesNotExist:
 		like = Like(user=request.user, pictureself=pictureself)
